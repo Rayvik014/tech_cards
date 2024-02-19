@@ -2,6 +2,8 @@
 # frames 74 (37x2), 80 (40x2)
 # 1680 x 1200
 # 840 x 600
+# 842x598
+# 72 points in 1 inch  11.7 x 8.3 " дюймов  koef=2.1
 import fitz
 from google_images_search import GoogleImagesSearch
 import base_services as Base
@@ -28,12 +30,13 @@ class Card:
         self.box = self.get_box(new_tech[3])
 
     def get_image(self):
-        with open('files/no_data.png', 'rb') as default_image_file:
+        with open('files/flag_masks/no_data.png', 'rb') as default_image_file:
             default_image = default_image_file.read()
-        images_list = get_images_list(manufacturer, model)
+        images_list = None
+        #images_list = get_images_list(self.manufacturer, self.model)
         if images_list:
             pass
-        return default_image
+        self.image = default_image
 
     def get_emblem(self, emblem_file_name):
         pass
@@ -45,34 +48,33 @@ class Card:
 def get_images_list(manufacturer, model):
     gis = GoogleImagesSearch(DEV_API_KEY, PROJECT_CX)
     gis.search(search_params={'q': f'{manufacturer} {model}', 
-                              'num': 10})
+                              'num': 1})
     results = gis.results()
-    print(type(results))
 
 
 def create_new_pdf():
     pdf = fitz.open()
     page = pdf._newPage()
-    page.set_rotation(90)
     database = Base.read_excel_file()
     cards = [Card('civil', database), 
              Card('commercial', database), 
              Card('military', database),
              Card('aero', database)]
-    rects = [page.Rect(40, 37, 640, 877),
-             page.Rect(640, 37, 1240, 877),
-             page.Rect(40, 877, 640, 1717),
-             page.Rect(640, 877, 1240, 1717)]
-    for i in range(3):
-        page.insert_image(rects[i], stream=cards[i].image)
+    rects = [fitz.Rect(14, 14, 301, 416),
+             fitz.Rect(301, 14, 586, 416),
+             fitz.Rect(14, 416, 301, 817),
+             fitz.Rect(301, 416, 586, 817)]
+    for i in range(4):
+        page.insert_image(rects[i], stream=cards[i].image, rotate=90, keep_proportion=False)
+        pdf.save(f'temp_pdf_{i}.pdf')
     return pdf
     
 
 def make_preview_image_binary():
     pdf = create_new_pdf()
-    zoom = 2
+    zoom = 0.5
     mat = fitz.Matrix(zoom, zoom)
     page = pdf.load_page(0)
     pix = page.get_pixmap(matrix=mat)
     pdf.close()
-    return pix
+    return pix.tobytes()
